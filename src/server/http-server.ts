@@ -130,10 +130,27 @@ export class AgentMeshServer {
         return this.sendJson(res, 200, { goals: Object.values(DEMO_GOALS) });
       }
 
-      // 7. Trigger Swarm Run: POST /api/swarms/run
-      if (req.method === 'POST' && pathname === '/api/swarms/run') {
+      // 7. Trigger Swarm Run: POST /api/swarms or POST /api/swarms/run
+      if (req.method === 'POST' && (pathname === '/api/swarms' || pathname === '/api/swarms/run')) {
         const body = await this.readJsonBody(req);
-        const goal: SwarmGoal = body.goal || DEMO_GOALS.security_audit;
+        let goal: SwarmGoal;
+        if (typeof body.goal === 'string') {
+          goal = {
+            id: `goal-${randomUUID().slice(0, 8)}`,
+            title: body.goal,
+            description: body.goal,
+            maxRounds: body.maxTurns || body.maxRounds || 4,
+            requireConsensus: true,
+          };
+        } else if (body.goal && typeof body.goal === 'object') {
+          goal = { ...body.goal };
+          if (body.maxTurns && !goal.maxRounds) {
+            goal.maxRounds = body.maxTurns;
+          }
+        } else {
+          goal = { ...DEMO_GOALS.security_audit! };
+        }
+
         const topology: SwarmTopology = body.topology || 'COLLABORATIVE_DEBATE';
         const isSync = parsedUrl.searchParams.get('sync') === 'true';
         const instanceId = randomUUID();
@@ -181,6 +198,13 @@ export class AgentMeshServer {
         return this.sendJson(res, success ? 200 : 400, { success, instanceId });
       }
 
+      // 10b. List Pending Approvals: GET /api/approvals
+      if (req.method === 'GET' && pathname === '/api/approvals') {
+        return this.sendJson(res, 200, {
+          approvals: this.orchestrator.getToolRegistry().getPendingApprovals(),
+        });
+      }
+
       // 11. Human Approval: POST /api/approvals/:id
       const approvalMatch = pathname.match(/^\/api\/approvals\/([^/]+)$/);
       if (req.method === 'POST' && approvalMatch) {
@@ -205,26 +229,35 @@ export class AgentMeshServer {
   }
 
   private async serveStaticUI(pathname: string, res: http.ServerResponse): Promise<boolean> {
-    let cleanPath = pathname === '/' ? '/index.html' : pathname;
-    if (cleanPath.startsWith('/ui/')) {
-      cleanPath = cleanPath.slice(4); // Remove the '/ui' prefix (4 chars: '/', 'u', 'i', '/')
+    let cleanPath = pathname;
+    if (cleanPath === '/' || cleanPath === '' || cleanPath === '/ui' || cleanPath === '/ui/') {
+      cleanPath = 'index.html';
+    } else if (cleanPath.startsWith('/ui/')) {
+      cleanPath = cleanPath.slice(4);
+    } else if (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.slice(1);
     }
 
-    // Guard against path traversal attacks
-    const sanitized = path.normalize(cleanPath).replace(/^(\.\.(\/|\\|$))+/, '');
-    if (sanitized !== cleanPath) return false;
+    // Security check: disallow directory traversal
+    if (cleanPath.includes('..') || path.isAbsolute(cleanPath)) {
+      return false;
+    }
 
     const possibleDirs = [
       path.join(process.cwd(), 'src', 'ui'),
       path.join(process.cwd(), 'dist', 'ui'),
       path.join(__dirname, '..', 'ui'),
+      path.join(__dirname, 'ui'),
     ];
 
     let filePath: string | null = null;
     for (const dir of possibleDirs) {
-      const candidate = path.resolve(dir, cleanPath.replace(/^\//, ''));
-      // Ensure the resolved path is inside the allowed directory (path traversal guard)
-      if (!candidate.startsWith(path.resolve(dir))) continue;
+      const candidate = path.resolve(dir, cleanPath);
+      const resolvedDir = path.resolve(dir);
+      // Ensure resolved candidate is strictly inside dir
+      if (!candidate.startsWith(resolvedDir + path.sep) && candidate !== resolvedDir) {
+        continue;
+      }
       if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
         filePath = candidate;
         break;
