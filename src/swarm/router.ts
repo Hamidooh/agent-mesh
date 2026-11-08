@@ -96,7 +96,7 @@ export class SwarmRouter {
           currentAgent: agent,
           targetRecipient: 'SWARM',
           suggestedPrompt: `Deliberate and cast vote on whether to approve: "${goal.title}".`,
-          isFinalTurn: round >= agents.length,
+          isFinalTurn: isLastRound,
         };
       }
 

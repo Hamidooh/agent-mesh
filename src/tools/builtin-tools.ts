@@ -84,13 +84,31 @@ export const MathEvaluatorTool: ToolDefinition<{ expression: string }> = {
   },
   execute: async ({ expression }, ctx) => {
     ctx.log(`Evaluating arithmetic expression: ${expression}`);
-    // Strict sanitize: only allow numbers, basic math operators, parentheses, Math functions
-    const sanitized = expression.replace(/[^0-9+\-*/().,%^ Math\w]/g, '');
+    // Strict allow-list: only digits, basic operators, parens, dot, whitespace, and known Math identifiers
+    const allowedIdentifiers = new Set([
+      'Math', 'PI', 'E', 'LN2', 'LN10', 'LOG2E', 'LOG10E', 'SQRT2',
+      'abs', 'ceil', 'floor', 'round', 'sqrt', 'pow', 'log', 'log2', 'log10',
+      'max', 'min', 'sin', 'cos', 'tan', 'atan', 'atan2', 'exp', 'sign', 'trunc', 'cbrt',
+      'Infinity', 'NaN',
+    ]);
+
+    // Reject any identifier that is not in the allow-list
+    const identifiers = expression.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+    const forbidden = identifiers.filter((id) => !allowedIdentifiers.has(id));
+    if (forbidden.length > 0) {
+      throw new Error(`Disallowed identifiers in expression: ${forbidden.join(', ')}`);
+    }
+
+    // Strip everything except allowed characters
+    const sanitized = expression.replace(/[^0-9+\-*/().,%^ MathPIELNSQRT\w\s]/g, '');
 
     try {
       // Evaluate within restricted function scope without access to globals
-      const fn = new Function('Math', `"use strict"; return (${sanitized});`);
-      const result = fn(Math);
+      const fn = new Function('Math', 'Infinity', 'NaN', `"use strict"; return (${sanitized});`);
+      const result = fn(Math, Infinity, NaN);
+      if (typeof result !== 'number') {
+        throw new Error('Expression did not evaluate to a number.');
+      }
       return {
         expression: sanitized,
         result: Number(result),

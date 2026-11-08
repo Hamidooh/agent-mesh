@@ -100,7 +100,7 @@ export class AgentMeshServer {
         });
       }
 
-      // 5. Memory Query
+      // 5. Memory Query: GET /api/memory?q=... or GET /api/memory (all entries)
       if (req.method === 'GET' && pathname === '/api/memory') {
         const query = parsedUrl.searchParams.get('q');
         if (query) {
@@ -111,6 +111,18 @@ export class AgentMeshServer {
           totalEntries: this.orchestrator.getSharedMemory().count(),
           entries: this.orchestrator.getSharedMemory().getAllEntries(),
         });
+      }
+
+      // 5b. Memory Search: POST /api/memory/search (documented in README)
+      if (req.method === 'POST' && pathname === '/api/memory/search') {
+        const body = await this.readJsonBody(req);
+        const query: string = body.query || '';
+        const topK: number = typeof body.topK === 'number' ? Math.min(body.topK, 20) : 5;
+        if (!query.trim()) {
+          return this.sendJson(res, 400, { error: 'Missing required field: query' });
+        }
+        const results = this.orchestrator.getSharedMemory().search(query, topK);
+        return this.sendJson(res, 200, { query, topK, results });
       }
 
       // 6. Pre-configured Goals
@@ -195,8 +207,12 @@ export class AgentMeshServer {
   private async serveStaticUI(pathname: string, res: http.ServerResponse): Promise<boolean> {
     let cleanPath = pathname === '/' ? '/index.html' : pathname;
     if (cleanPath.startsWith('/ui/')) {
-      cleanPath = cleanPath.slice(3);
+      cleanPath = cleanPath.slice(4); // Remove the '/ui' prefix (4 chars: '/', 'u', 'i', '/')
     }
+
+    // Guard against path traversal attacks
+    const sanitized = path.normalize(cleanPath).replace(/^(\.\.(\/|\\|$))+/, '');
+    if (sanitized !== cleanPath) return false;
 
     const possibleDirs = [
       path.join(process.cwd(), 'src', 'ui'),
@@ -206,7 +222,9 @@ export class AgentMeshServer {
 
     let filePath: string | null = null;
     for (const dir of possibleDirs) {
-      const candidate = path.join(dir, cleanPath);
+      const candidate = path.resolve(dir, cleanPath.replace(/^\//, ''));
+      // Ensure the resolved path is inside the allowed directory (path traversal guard)
+      if (!candidate.startsWith(path.resolve(dir))) continue;
       if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
         filePath = candidate;
         break;

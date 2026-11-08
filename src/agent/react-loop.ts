@@ -99,7 +99,7 @@ export class ReActController {
         this.agent.remember(`Tool ${selectedTool} returned: ${JSON.stringify(stepRecord.observation)}`);
 
         // Check if we have enough information to formulate final answer
-        if (iteration >= 2 || !result.error) {
+        if (iteration >= maxIterations - 1 || (iteration >= 2 && !result.error)) {
           finalAnswer = `Analysis concluded: ${selectedTool} verified findings. Recommended remediation confirmed.`;
         }
       }

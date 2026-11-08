@@ -3,7 +3,7 @@
  * Real-time event streaming for multi-agent thoughts, tool calls, and debate turns.
  */
 
-import { WebSocketServer, WebSocket } from 'ws';
+import { WebSocketServer, WebSocket, RawData } from 'ws';
 import { Server as HttpServer } from 'node:http';
 import { SwarmOrchestrator } from '../swarm/swarm.js';
 import { SwarmEvent } from '../types.js';
@@ -39,7 +39,7 @@ export class LiveTelemetryServer {
 
       ws.send(JSON.stringify(initialPayload));
 
-      ws.on('message', (message: string) => {
+      ws.on('message', (message: RawData) => {
         try {
           const parsed = JSON.parse(message.toString());
           if (parsed.action === 'PING') {

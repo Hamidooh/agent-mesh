@@ -91,6 +91,7 @@ export class SwarmOrchestrator {
     const instanceId = customInstanceId || randomUUID();
     const abortController = new AbortController();
     this.abortControllers.set(instanceId, abortController);
+    let wasCancelled = false;
 
     const instance: SwarmInstance = {
       id: instanceId,
@@ -111,6 +112,7 @@ export class SwarmOrchestrator {
     try {
       while (currentRound < maxRounds) {
         if (abortController.signal.aborted) {
+          wasCancelled = true;
           throw new Error('Swarm execution was cancelled by user.');
         }
 
@@ -134,8 +136,8 @@ export class SwarmOrchestrator {
         instance.activeAgentId = agent.id;
         this.emitEvent(instanceId, 'AGENT_THINKING', agent.id, { round: currentRound });
 
-        // If specialist agent has tools, run a ReAct execution loop
-        if (agent.persona.allowedTools.length > 0 && !turnPlan.isFinalTurn) {
+        // If agent has tools, run a ReAct execution loop
+        if (agent.persona.allowedTools.length > 0) {
           const react = new ReActController(agent);
           const reactOutcome = await react.executeTask(
             goal.title,
@@ -214,7 +216,7 @@ export class SwarmOrchestrator {
 
       return instance;
     } catch (err: any) {
-      instance.status = abortController.signal.aborted ? 'CANCELLED' : 'FAILED';
+      instance.status = wasCancelled ? 'CANCELLED' : 'FAILED';
       instance.error = err.message || String(err);
       instance.endTime = Date.now();
       instance.durationMs = instance.endTime - instance.startTime;
@@ -222,7 +224,7 @@ export class SwarmOrchestrator {
 
       this.emitEvent(
         instanceId,
-        abortController.signal.aborted ? 'SWARM_CANCELLED' : 'SWARM_FAILED',
+        wasCancelled ? 'SWARM_CANCELLED' : 'SWARM_FAILED',
         undefined,
         { error: instance.error }
       );

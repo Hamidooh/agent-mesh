@@ -405,15 +405,26 @@
             <span class="approval-title">⚠️ Action Requires Sign-off: ${esc(app.toolName)}</span>
             <div style="font-size:10px">${esc(JSON.stringify(app.args))}</div>
             <div class="approval-actions">
-              <button class="btn-approve" onclick="resolveApproval('${esc(app.id)}', true)">✔ Approve</button>
-              <button class="btn-reject" onclick="resolveApproval('${esc(app.id)}', false)">✖ Reject</button>
+              <button class="btn-approve" data-approval-id="${esc(app.id)}" data-approved="true">✔ Approve</button>
+              <button class="btn-reject" data-approval-id="${esc(app.id)}" data-approved="false">✖ Reject</button>
             </div>
           </div>`;
       })
       .join('');
   }
 
-  window.resolveApproval = async function (id, approved) {
+  // Event delegation — avoids inline onclick and is CSP-safe
+  if (elApprovalsList) {
+    elApprovalsList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('[data-approval-id]');
+      if (!btn) return;
+      const id = btn.getAttribute('data-approval-id');
+      const approved = btn.getAttribute('data-approved') === 'true';
+      if (id) await resolveApproval(id, approved);
+    });
+  }
+
+  async function resolveApproval(id, approved) {
     try {
       await fetch(`/api/approvals/${encodeURIComponent(id)}`, {
         method: 'POST',
@@ -421,7 +432,7 @@
         body: JSON.stringify({ approved }),
       });
     } catch { /* silent */ }
-  };
+  }
 
   /* ─────────────────── Consensus Verdict ──────────────────────── */
   function renderVerdict(verdict) {

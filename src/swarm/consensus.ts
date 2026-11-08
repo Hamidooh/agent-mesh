@@ -13,6 +13,17 @@ export class ConsensusEvaluator {
     messages: AgentMessage[],
     _expectedAgents: string[]
   ): ConsensusVerdict {
+    // Edge case: no messages → return neutral non-consensus (not a failure)
+    if (messages.length === 0) {
+      return {
+        reached: false,
+        confidenceScore: 0,
+        supportingAgents: [],
+        dissentingAgents: [],
+        synthesis: 'No debate messages recorded. Swarm completed with no deliberation.',
+      };
+    }
+
     const votes = messages.filter(
       (m) => m.type === 'CONSENSUS_VOTE' || m.type === 'DEBATE_ARGUMENT'
     );
