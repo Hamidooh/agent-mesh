@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: [20.x, 22.x, 24.x]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Type-Check (Strict Mode)
+        run: npm run typecheck
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Run Test Suite
+        run: npm test
+
+      - name: Run Security Audit Showcase
+        run: npm run example:audit
+
+      - name: Run Collaborative Debate Showcase
+        run: npm run example:debate

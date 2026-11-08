@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentMesh — Multi-Agent Swarm Orchestrator</title>
+  <link rel="stylesheet" href="/ui/dashboard.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand">
+          <div class="brand-icon">🕸️</div>
+          <span class="brand-name">AgentMesh</span>
+          <span class="brand-badge">Swarm v1.0</span>
+        </div>
+        <div class="connection-status" id="ws-status">
+          <span class="status-dot"></span>
+          <span class="status-text">Connected</span>
+        </div>
+      </div>
+
+      <div class="header-center">
+        <div class="control-group">
+          <label for="topology-select" class="control-label">Topology:</label>
+          <select id="topology-select" class="dropdown-control">
+            <option value="COLLABORATIVE_DEBATE">Collaborative Debate</option>
+            <option value="HIERARCHICAL">Hierarchical Delegation</option>
+            <option value="VOTING_CONSENSUS">Voting Consensus</option>
+            <option value="ROUND_ROBIN">Round-Robin Relay</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="goal-select" class="control-label">Goal Preset:</label>
+          <select id="goal-select" class="dropdown-control">
+            <option value="">Loading goals...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <button id="btn-custom-goal" class="btn btn-ghost" title="Custom goal editor">
+          <span>⚙</span> Custom Goal
+        </button>
+        <button id="btn-launch-swarm" class="btn btn-primary">
+          <span class="btn-icon">▶</span> Launch Swarm
+        </button>
+      </div>
+    </header>
+
+    <!-- Custom Goal Drawer (Slide Down) -->
+    <div id="goal-drawer" class="goal-drawer" style="display: none;">
+      <div class="drawer-header">
+        <span class="drawer-title">Custom Multi-Agent Goal & Context</span>
+        <button id="btn-close-goal" class="btn-close">✕</button>
+      </div>
+      <div class="drawer-inputs">
+        <input type="text" id="custom-goal-title" class="text-input" placeholder="Goal Title (e.g., Audit Microservice Zero-Day Flaws)">
+        <textarea id="custom-goal-desc" class="text-editor" rows="2" placeholder="Goal Details and Operational Constraints..."></textarea>
+      </div>
+    </div>
+
+    <!-- Active Swarm Banner -->
+    <section class="swarm-banner">
+      <div class="banner-info">
+        <div class="banner-title-wrap">
+          <h1 class="banner-title" id="active-swarm-title">Select a Goal to Begin Multi-Agent Deliberation</h1>
+          <span class="status-pill pill-idle" id="active-status-badge">IDLE</span>
+        </div>
+        <div class="banner-meta" id="active-meta-text">No active swarm. Select a topology and click "Launch Swarm".</div>
+      </div>
+      <div class="banner-actions" id="active-controls" style="display: none;">
+        <button id="btn-cancel-swarm" class="btn btn-danger-subtle btn-sm">⏹ Abort Swarm</button>
+      </div>
+    </section>
+
+    <!-- Swarm Agents Mesh Ribbon -->
+    <section class="agents-ribbon" id="agents-ribbon">
+      <!-- Agent status cards populated dynamically -->
+    </section>
+
+    <!-- Main Workspace -->
+    <div class="workspace-body">
+      <!-- History Sidebar -->
+      <aside class="sidebar" id="history-sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-heading">Swarm Executions</span>
+          <button id="btn-refresh-history" class="btn-icon-subtle" title="Refresh">↻</button>
+        </div>
+        <div class="history-list" id="instances-list">
+          <div class="empty-hint">No swarms executed yet.</div>
+        </div>
+      </aside>
+
+      <!-- Center Debate Transcript -->
+      <main class="transcript-main">
+        <div class="transcript-header">
+          <span class="panel-heading">Multi-Agent Deliberation & Dialectic Stream</span>
+          <div class="transcript-actions">
+            <button id="btn-pause-feed" class="btn-tool-sm">⏸ Pause</button>
+            <button id="btn-clear-feed" class="btn-tool-sm">🗑 Clear</button>
+          </div>
+        </div>
+        <div class="transcript-scroll" id="transcript-feed">
+          <div class="empty-hint">Agent debate messages, thoughts, and consensus updates will stream here in real time.</div>
+        </div>
+      </main>
+
+      <!-- Right Panel: Tools & Approvals -->
+      <aside class="side-panel">
+        <div class="panel-section">
+          <div class="panel-header">
+            <span class="panel-heading">Human Approvals (HITL)</span>
+            <span class="badge-count" id="pending-count">0</span>
+          </div>
+          <div class="approvals-list" id="approvals-list">
+            <div class="empty-hint">No high-stakes actions pending operator sign-off.</div>
+          </div>
+        </div>
+
+        <div class="panel-section panel-flex">
+          <div class="panel-header">
+            <span class="panel-heading">Tool Mesh Invocations</span>
+          </div>
+          <div class="tools-history" id="tools-history">
+            <div class="empty-hint">Executed tools and sandboxed telemetry appear here.</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom Inspector Drawer -->
+    <footer class="bottom-drawer">
+      <div class="drawer-tabs">
+        <button class="tab-item active" data-tab="tab-consensus">
+          <span>⚖️</span> Consensus Verdict
+        </button>
+        <button class="tab-item" data-tab="tab-memory">
+          <span>🧠</span> Vector Memory Explorer
+        </button>
+        <button class="tab-item" data-tab="tab-metrics">
+          <span>📈</span> Swarm Engine Health
+        </button>
+      </div>
+
+      <div class="drawer-content">
+        <!-- Consensus Tab -->
+        <div class="tab-pane active" id="tab-consensus">
+          <div class="consensus-box" id="consensus-box">
+            <div class="consensus-status-line">
+              <span class="consensus-label">Verdict:</span>
+              <span class="status-pill pill-idle" id="verdict-status">AWAITING DELIBERATION</span>
+              <span class="confidence-badge" id="confidence-score">Confidence: --</span>
+            </div>
+            <div class="synthesis-text" id="verdict-synthesis">Synthesized decision and dissenting opinions will appear upon conclusion.</div>
+          </div>
+        </div>
+
+        <!-- Memory Explorer Tab -->
+        <div class="tab-pane" id="tab-memory">
+          <div class="memory-search-bar">
+            <input type="text" id="memory-search-input" class="text-input" placeholder="Test semantic vector query against episodic memory (e.g. 'injection vulnerabilities')...">
+            <button id="btn-search-memory" class="btn btn-subtle btn-sm">Search Vectors</button>
+          </div>
+          <div class="memory-results" id="memory-results">
+            <div class="empty-hint">Query the TF-IDF vector memory to inspect semantic cosine similarity rankings.</div>
+          </div>
+        </div>
+
+        <!-- Metrics Tab -->
+        <div class="tab-pane" id="tab-metrics">
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <span class="metric-label">Total Swarms</span>
+              <span class="metric-val" id="metric-total-swarms">0</span>
+              <span class="metric-sub" id="metric-active-swarms">0 active</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Consensus Rate</span>
+              <span class="metric-val text-success" id="metric-consensus-rate">100%</span>
+              <span class="metric-sub">deliberation agreements</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Tool Calls</span>
+              <span class="metric-val" id="metric-tool-calls">0</span>
+              <span class="metric-sub">sandboxed executions</span>
+            </div>
+            <div class="metric-card">
+              <span class="metric-label">Debate Turns</span>
+              <span class="metric-val" id="metric-debate-turns">0</span>
+              <span class="metric-sub">agent dialogue turns</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/ui/dashboard.js"></script>
+</body>
+</html>

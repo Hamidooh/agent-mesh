@@ -1,0 +1,52 @@
+{
+  "name": "agentmesh-swarm",
+  "version": "1.0.0",
+  "description": "Autonomous Multi-Agent Swarm Orchestrator & Task Mesh with ReAct reflection loops, vector episodic memory, tool sandboxing, and real-time visualizer.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "agentmesh": "./dist/cli/cli.js"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"import('node:fs').then(fs => fs.cpSync('src/ui', 'dist/ui', { recursive: true, force: true }))\"",
+    "watch": "tsc --watch",
+    "start": "tsx src/cli/cli.ts start --port 3040",
+    "dev": "tsx src/cli/cli.ts dev --port 3040",
+    "test": "node --import tsx --test tests/**/*.test.ts",
+    "example:audit": "tsx examples/01-security-audit.ts",
+    "example:debate": "tsx examples/02-collaborative-debate.ts",
+    "example:incident": "tsx examples/03-autonomous-incident-triage.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "multi-agent",
+    "swarm",
+    "ai-agents",
+    "react-loop",
+    "orchestrator",
+    "autonomous-agents",
+    "vector-memory",
+    "tool-use",
+    "typescript"
+  ],
+  "author": "Herman Ofwiti (Hamidooh)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hamidooh/agent-mesh.git"
+  },
+  "homepage": "https://github.com/Hamidooh/agent-mesh#readme",
+  "bugs": {
+    "url": "https://github.com/Hamidooh/agent-mesh/issues"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.14",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
