@@ -18,12 +18,18 @@ yarn-error.log*
 .agentmesh-wal/
 *.wal
 *.wal.*
+agent-transcripts/
+*.dump
+dump.rdb
 
 # Secrets, Environment & Credentials (Never commit)
 .env
 .env.*
 .env.local
 .env.*.local
+.env.production
+.env.development
+.env.staging
 *.pem
 *.key
 *.cert
@@ -31,20 +37,34 @@ yarn-error.log*
 *.pfx
 *.secret
 *.token
+*.keystore
+*.jks
 credentials.json
 auth.json
 id_rsa*
+private_keys/
+secrets/
 
-# Temporary & Cache
+# Database & Local Storage
+*.sqlite
+*.sqlite3
+*.db
+*.local
+
+# Temporary, Cache & Scratchpad
 .cache/
 tmp/
 temp/
+scratch/
 *.tmp
 *.bak
 
 # IDE & Editor files
 .vscode/
 .idea/
+.fleet/
+.zed/
+.history/
 *.sublime-project
 *.sublime-workspace
 .DS_Store
