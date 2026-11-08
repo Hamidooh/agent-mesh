@@ -13,7 +13,7 @@
     "watch": "tsc --watch",
     "start": "tsx src/cli/cli.ts start --port 3040",
     "dev": "tsx src/cli/cli.ts dev --port 3040",
-    "test": "node --import tsx --test tests/**/*.test.ts",
+    "test": "tsx tests/run-all.ts",
     "bench": "tsx src/cli/cli.ts bench",
     "example:audit": "tsx examples/01-security-audit.ts",
     "example:debate": "tsx examples/02-collaborative-debate.ts",
